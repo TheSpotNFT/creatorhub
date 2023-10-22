@@ -1,16 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getDatabase, ref, get } from "firebase/database"; // Import the database module
+import { getDatabase, ref, get } from "firebase/database";
 
-const VideoPlayer = ({ username, address }) => {
-  const [videoData, setVideoData] = useState(null);
+// Create a global variable for the YouTube Player
+let player;
+
+const VideoPlayer = ({ username, userId }) => {
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
     const firebaseConfig = {
       apiKey: "AIzaSyAA5-Qa5UJ3b0S6pAs3E7OCaG-TwR5Vvig",
       authDomain: "thehub-8af08.firebaseapp.com",
       projectId: "thehub-8af08",
+      databaseURL: "https://thehub-8af08-default-rtdb.firebaseio.com/",
       storageBucket: "thehub-8af08.appspot.com",
       messagingSenderId: "429824717981",
       appId: "1:429824717981:web:0b9587dfd24b273b38d074",
@@ -24,38 +28,66 @@ const VideoPlayer = ({ username, address }) => {
     const database = getDatabase();
 
     // Use the ref function to create a reference to the Firebase database path
-    const videosRef = ref(database, `videos/${address}`);
+    const userRef = ref(database, "/");
 
-    get(videosRef).then((snapshot) => {
+    get(userRef).then((snapshot) => {
       if (snapshot.exists()) {
-        setVideoData(snapshot.val());
+        const user = snapshot.val();
+        console.log("Data from Firebase:", user); // Log the retrieved data
+        setUserData(user);
+        // Initialize the YouTube player
+        initYouTubePlayer(user.url);
       } else {
-        setVideoData(null); // No video found for the provided username
+        console.log("No data found for the provided userId:", userId); // Log the absence of data
+        setUserData(null); // No user data found for the provided userId
       }
     });
 
     return () => {
       // No need to explicitly call off() for read operations
     };
-  }, [address]);
+  }, [userId]);
+
+  // Function to initialize the YouTube player
+  const initYouTubePlayer = (videoUrl) => {
+    if (window.YT && typeof window.YT.Player === "function") {
+      player = new window.YT.Player('youtube-player', {
+        videoId: extractVideoId(videoUrl),
+        playerVars: {
+          controls: 1,
+          modestbranding: 1,
+          showinfo: 0,
+        },
+        events: {
+          onReady: onPlayerReady,
+        },
+      });
+    }
+  };
+
+  // Function to extract the video ID from a YouTube URL
+  const extractVideoId = (url) => {
+    const match = url.match(/v=([A-Za-z0-9_-]+)/);
+    if (match) {
+      return match[1];
+    }
+    return '';
+  };
+
+  // Function called when the YouTube player is ready
+  const onPlayerReady = (event) => {
+    event.target.playVideo();
+  };
 
   return (
     <div>
-      {videoData ? (
+      {userData ? (
         <div>
-          <h3>{username}'s Video</h3>
-          <iframe
-            width="560"
-            height="315"
-            src={videoData}
-            title="Embedded Video"
-            frameBorder="0"
-            allow="autoplay; encrypted-media"
-            allowFullScreen
-          ></iframe>
+          <h3>{userData.username}'s Video</h3>
+          <div id="youtube-player"></div>
         </div>
       ) : (
-        <p>No video found for {username}</p>
+        <p>No user data found for this userId {userData}</p>
       )}
     </div>
   );
