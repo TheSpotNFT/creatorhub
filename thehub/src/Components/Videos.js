@@ -83,7 +83,7 @@ const VideoPlayer = ({ username, userId }) => {
     <div>
       {userData ? (
         <div>
-          <h3>{userData.username}'s Video</h3>
+          <h3>{userData.username}'s Channel</h3>
           <div id="youtube-player"></div>
         </div>
       ) : (
